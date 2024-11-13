@@ -1,67 +1,71 @@
 package main
 
 import (
-	"fmt"
-	"io"
-	"net/http"
-	"os"
-	"path/filepath"
+    "crypto/sha1"
+    "encoding/hex"
+    "fmt"
+    "io"
+    "log"
+    "io/ioutil"
+    "net/http"
+    "os"
+    "path/filepath"
 )
 
-const (
-	pubDevURL    = "https://pub.dev"
-	cacheDir     = "./cache" // Directory to store cached packages
-	port         = ":8060"
-)
+// Cache directory path
+const cacheDir = "/opt/cache"
+
+// Generates a hash for the URL to use as a cache file name
+func urlHash(url string) string {
+    h := sha1.New()
+    h.Write([]byte(url))
+    return hex.EncodeToString(h.Sum(nil))
+}
+
+// Check if the response is cached; if so, return the cached data
+func getCachedResponse(url string) ([]byte, bool) {
+    cacheFile := filepath.Join(cacheDir, urlHash(url))
+    data, err := ioutil.ReadFile(cacheFile)
+    if err != nil {
+        return nil, false
+    }
+    return data, true
+}
+
+// Cache the response to disk
+func cacheResponse(url string, data []byte) {
+    cacheFile := filepath.Join(cacheDir, urlHash(url))
+    os.MkdirAll(cacheDir, os.ModePerm)
+    _ = ioutil.WriteFile(cacheFile, data, 0644)
+}
+
+// Handles the proxy request
+func handleRequest(w http.ResponseWriter, r *http.Request) {
+    log.Printf("Received request: %s %s", r.Method, r.URL.Path)
+    // Check if we have a cached response
+    if data, found := getCachedResponse(r.URL.String()); found {
+        w.Write(data)
+        return
+    }
+
+    // Forward request to the target server
+    resp, err := http.Get("https://pub.dev" + r.URL.Path)
+    if err != nil {
+        http.Error(w, "Failed to fetch", http.StatusInternalServerError)
+        return
+    }
+    defer resp.Body.Close()
+
+    // Read and cache the response
+    data, _ := io.ReadAll(resp.Body)
+    cacheResponse(r.URL.String(), data)
+
+    // Write response to the client
+    w.Write(data)
+}
 
 func main() {
-	http.HandleFunc("/", handleRequest)
-	fmt.Println("Proxy server started on port", port)
-	if err := http.ListenAndServe(port, nil); err != nil {
-		fmt.Println("Server error:", err)
-	}
+    http.HandleFunc("/", handleRequest)
+    fmt.Println("Starting proxy server on :8060")
+    http.ListenAndServe(":8060", nil)
 }
-
-func handleRequest(w http.ResponseWriter, r *http.Request) {
-	packagePath := r.URL.Path
-	cachedFilePath := filepath.Join(cacheDir, packagePath)
-
-	if _, err := os.Stat(cachedFilePath); err == nil {
-		// Serve from cache if it exists
-		http.ServeFile(w, r, cachedFilePath)
-		fmt.Println("Served from cache:", packagePath)
-		return
-	}
-
-	// Fetch from pub.dev if not in cache
-	fmt.Println("Fetching from pub.dev:", packagePath)
-	resp, err := http.Get(pubDevURL + packagePath)
-	if err != nil {
-		http.Error(w, "Unable to fetch package", http.StatusInternalServerError)
-		return
-	}
-	defer resp.Body.Close()
-
-	// Create cache directories if needed
-	if err := os.MkdirAll(filepath.Dir(cachedFilePath), os.ModePerm); err != nil {
-		http.Error(w, "Unable to create cache directories", http.StatusInternalServerError)
-		return
-	}
-
-	// Cache the package locally
-	file, err := os.Create(cachedFilePath)
-	if err != nil {
-		http.Error(w, "Unable to save package", http.StatusInternalServerError)
-		return
-	}
-	defer file.Close()
-
-	if _, err := io.Copy(file, resp.Body); err != nil {
-		http.Error(w, "Error saving package", http.StatusInternalServerError)
-		return
-	}
-
-	// Serve the fetched package to the client
-	http.ServeFile(w, r, cachedFilePath)
-}
-
