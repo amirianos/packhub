@@ -10,10 +10,10 @@ import (
     "net/http"
     "os"
     "path/filepath"
+    "flag"
 )
 
-// Cache directory path
-const cacheDir = "/opt/cache"
+var cacheDir *string
 
 // Generates a hash for the URL to use as a cache file name
 func urlHash(url string) string {
@@ -24,7 +24,7 @@ func urlHash(url string) string {
 
 // Check if the response is cached; if so, return the cached data
 func getCachedResponse(url string) ([]byte, bool) {
-    cacheFile := filepath.Join(cacheDir, urlHash(url))
+    cacheFile := filepath.Join(*cacheDir, urlHash(url))
     data, err := ioutil.ReadFile(cacheFile)
     if err != nil {
         return nil, false
@@ -34,8 +34,8 @@ func getCachedResponse(url string) ([]byte, bool) {
 
 // Cache the response to disk
 func cacheResponse(url string, data []byte) {
-    cacheFile := filepath.Join(cacheDir, urlHash(url))
-    os.MkdirAll(cacheDir, os.ModePerm)
+    cacheFile := filepath.Join(*cacheDir, urlHash(url))
+    os.MkdirAll(*cacheDir, os.ModePerm)
     _ = ioutil.WriteFile(cacheFile, data, 0644)
 }
 
@@ -65,7 +65,12 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+    // Define command-line flags
+    cacheDir = flag.String("cachedir", "/opt/cache", "Path to cache data")
+    port := flag.String("port", "8060", "Port to listen for incomming requests")
+    flag.Parse()
+
     http.HandleFunc("/", handleRequest)
-    fmt.Println("Starting proxy server on :8060")
-    http.ListenAndServe(":8060", nil)
+    fmt.Println("Starting proxy server on :", *port)
+    log.Fatal(http.ListenAndServe(":" + *port, nil))
 }
