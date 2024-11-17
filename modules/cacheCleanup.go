@@ -8,7 +8,7 @@ import (
 
 )
 
-func CacheCleanup(cacheValidTime,cacheDir) {
+func CacheCleanup(cacheValidTime,cacheDir string) {
 
         // Get the current time
         now := time.Now()
