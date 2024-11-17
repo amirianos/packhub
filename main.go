@@ -11,6 +11,9 @@ import (
     "os"
     "path/filepath"
     "flag"
+    "github.com/robfig/cron/v3"
+
+    "packhub/modules"
 )
 
 var cacheDir *string
@@ -68,8 +71,15 @@ func main() {
     // Define command-line flags
     cacheDir = flag.String("cachedir", "/opt/cache", "Path to cache data")
     port := flag.String("port", "8060", "Port to listen for incomming requests")
+    cacheValidTime := flag.String("cachevalidtime", "3600", "Time intervals for deleting older cache - [one day is default value]")
     flag.Parse()
 
+    c := cron.New()
+    c.AddFunc("@every 30m", func() {
+        cacheCleanup.CacheCleanup(*cacheValidTime,*cacheDir)
+    })
+    c.Start()
+    
     http.HandleFunc("/", handleRequest)
     fmt.Println("Starting proxy server on :", *port)
     log.Fatal(http.ListenAndServe(":" + *port, nil))
