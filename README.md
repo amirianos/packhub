@@ -4,4 +4,4 @@ A simple implementation of Nexus for Flutter packages that can fetch packages fr
 To-Do List:<br />
 1- Read the port from the command line (Done).<br />
 2- Read the cache directory path from the command line (Done).<br />
-3- Add cache validation time (hours, minutes, seconds) (NOT Done).<br />
+3- Add cache validation time (hours, minutes, seconds) (Done).<br />
