@@ -1,10 +1,11 @@
-package cache
+package cacheCleanup
 
 import (
         "fmt"
         "os"
         "log"
         "time"
+        "strconv"
 
 )
 
@@ -29,8 +30,10 @@ func CacheCleanup(cacheValidTime,cacheDir string) {
                         log.Fatal(err)
                 }
 
+		cachevalidtime, err := strconv.Atoi(cacheValidTime)
+
                 // Check if the file was modifed more than one minute
-                if now.Sub(fileInfo.ModTime()) > cacheValidTime * time.Minute {
+                if now.Sub(fileInfo.ModTime()) > time.Duration(cachevalidtime) * time.Minute {
                     os.Remove(filePath)
                     fmt.Println("file: ", file.Name(), " ***DELETED*** ")
                 }
