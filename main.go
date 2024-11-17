@@ -75,8 +75,8 @@ func main() {
     flag.Parse()
 
     c := cron.New()
-	c.AddFunc("@every 30m", cacheCleanup.CacheCleanup(cacheValidTime,cacheDir)) 
-	c.Start()
+    c.AddFunc("@every 30m", cacheCleanup.CacheCleanup(cacheValidTime,cacheDir)) 
+    c.Start()
     
     http.HandleFunc("/", handleRequest)
     fmt.Println("Starting proxy server on :", *port)
