@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"net/http"
 	"packhub/handlers"
 	"packhub/helpers"
@@ -22,5 +23,6 @@ func main() {
 		Handler: getRoutes(handlers),
 	}
 
+	log.Println("proxy server is running on port :", *port)
 	server.ListenAndServe()
 }

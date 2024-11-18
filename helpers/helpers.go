@@ -31,10 +31,14 @@ func GetCachedResponse(url, cacheDir string) ([]byte, bool) {
 }
 
 // Cache the response to disk
-func CacheResponse(url, cacheDir string, data []byte) {
+func CacheResponse(url, cacheDir string, data []byte) error{
 	cacheFile := filepath.Join(cacheDir, UrlHash(url))
-	os.MkdirAll(cacheDir, os.ModePerm)
-	_ = os.WriteFile(cacheFile, data, 0644)
+	err := os.MkdirAll(cacheDir, os.ModePerm)
+	if err!= nil {
+		return err
+	}
+	return os.WriteFile(cacheFile, data, 0644)
+	
 }
 
 func cacheCleanup(cacheValidTime, cacheDir string) {
