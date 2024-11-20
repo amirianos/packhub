@@ -17,7 +17,12 @@ func main() {
 	flag.Parse()
 	helpers.CacheCronJob(*cacheValidTime, *cacheDir)
 
-	handlers := handlers.New(*cacheDir)
+	remoteRepos, err := helpers.ParseYaml("repositories.yml")
+	if err != nil {
+		log.Fatalln("Could not parse remote repositories from a yaml file")
+	}
+
+	handlers := handlers.New(*cacheDir, remoteRepos)
 	server := http.Server{
 		Addr:    fmt.Sprintf(": %s", *port),
 		Handler: getRoutes(handlers),

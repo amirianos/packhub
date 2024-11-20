@@ -3,14 +3,18 @@ package helpers
 import (
 	"crypto/sha1"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
+	"packhub/models"
 	"path/filepath"
 	"strconv"
 	"time"
 
 	"github.com/robfig/cron/v3"
+	"gopkg.in/yaml.v3"
 )
 
 // Generates a hash for the URL to use as a cache file name
@@ -31,14 +35,14 @@ func GetCachedResponse(url, cacheDir string) ([]byte, bool) {
 }
 
 // Cache the response to disk
-func CacheResponse(url, cacheDir string, data []byte) error{
+func CacheResponse(url, cacheDir string, data []byte) error {
 	cacheFile := filepath.Join(cacheDir, UrlHash(url))
 	err := os.MkdirAll(cacheDir, os.ModePerm)
-	if err!= nil {
+	if err != nil {
 		return err
 	}
 	return os.WriteFile(cacheFile, data, 0644)
-	
+
 }
 
 func cacheCleanup(cacheValidTime, cacheDir string) {
@@ -78,4 +82,33 @@ func CacheCronJob(expiration_time, cacheDir string) {
 		cacheCleanup(expiration_time, cacheDir)
 	})
 	c.Start()
+}
+
+func ParseYaml(path string) (map[string]*models.RemoteRepository, error) {
+
+	yamlFile, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	repos := make(map[string]*models.RemoteRepository)
+
+	err = yaml.Unmarshal(yamlFile, repos)
+	if err != nil {
+		return nil, err
+	}
+	return repos, nil
+}
+
+func MessageGenerator(w http.ResponseWriter, message string, statusCode int) {
+	w.Header().Set("Content-type", "application/json")
+	w.WriteHeader(statusCode)
+	msg := struct {
+		Message string `json:"message"`
+	}{
+		// Message: fmt.Sprintf("Failed to fetch https://pub.dev%s", r.URL.Path),
+		Message: message,
+	}
+	jsonResponse, _ := json.Marshal(msg)
+	w.Write(jsonResponse)
 }

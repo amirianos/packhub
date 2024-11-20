@@ -9,7 +9,7 @@ import (
 func getRoutes(h *handlers.Repository) http.Handler {
 	mux := chi.NewRouter()
 
-	mux.Get("/*", h.Home)
+	mux.Get("/{provider}/*", h.Home)
 
 	return mux
 }
