@@ -10,7 +10,6 @@ import (
 	"os"
 	"packhub/models"
 	"path/filepath"
-	"strconv"
 	"time"
 
 	"github.com/robfig/cron/v3"
@@ -45,42 +44,32 @@ func CacheResponse(url, cacheDir string, data []byte) error {
 
 }
 
-func cacheCleanup(cacheValidTime, cacheDir string) {
-
-	// Get the current time
+func cacheCleanup(cacheValidTime int, cacheDir string) {
 	now := time.Now()
-
-	// Read the contents of the directory
 	files, err := os.ReadDir(cacheDir)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	// Print the list of files
 	for _, file := range files {
 		filePath := cacheDir + "/" + file.Name()
-
-		// Get file information
 		fileInfo, err := os.Stat(filePath)
 		if err != nil {
 			log.Fatal(err)
 		}
-
-		cachevalidtime, _ := strconv.Atoi(cacheValidTime)
-
-		// Check if the file was modifed more than one minute
-		if now.Sub(fileInfo.ModTime()) > time.Duration(cachevalidtime)*time.Minute {
+		if now.Sub(fileInfo.ModTime()) > time.Duration(cacheValidTime)*time.Hour {
 			os.Remove(filePath)
 			fmt.Println("file: ", file.Name(), " ***DELETED*** ")
 		}
 	}
 }
 
-func CacheCronJob(expiration_time, cacheDir string) {
+func CacheCronJob(remoteRepos map[string]*models.RemoteRepository) {
 	c := cron.New()
-	c.AddFunc("@every 30m", func() {
-		cacheCleanup(expiration_time, cacheDir)
-	})
+	for _, remoteRepo := range remoteRepos {
+		c.AddFunc(fmt.Sprintf("@every %s", remoteRepo.CacheExpirationCheck), func() {
+			cacheCleanup(remoteRepo.CacheValidTime, remoteRepo.CacheDirectory)
+		})
+	}
 	c.Start()
 }
 
@@ -106,7 +95,6 @@ func MessageGenerator(w http.ResponseWriter, message string, statusCode int) {
 	msg := struct {
 		Message string `json:"message"`
 	}{
-		// Message: fmt.Sprintf("Failed to fetch https://pub.dev%s", r.URL.Path),
 		Message: message,
 	}
 	jsonResponse, _ := json.Marshal(msg)

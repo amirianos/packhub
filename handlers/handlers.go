@@ -13,13 +13,11 @@ import (
 )
 
 type Repository struct {
-	cacheDir           string
 	remoteRepositories map[string]*models.RemoteRepository
 }
 
-func New(cacheDirectory string, remoteRepos map[string]*models.RemoteRepository) *Repository {
+func New(remoteRepos map[string]*models.RemoteRepository) *Repository {
 	return &Repository{
-		cacheDir:           cacheDirectory,
 		remoteRepositories: remoteRepos,
 	}
 }
@@ -34,7 +32,8 @@ func (repo *Repository) Home(w http.ResponseWriter, r *http.Request) {
 
 	providerRemoteAddress := provider.Address
 	requestedPackage := strings.Split(r.URL.Path, requestedRepo)[1]
-	if data, found := helpers.GetCachedResponse(requestedPackage, repo.cacheDir); found {
+	cacheDir := provider.CacheDirectory
+	if data, found := helpers.GetCachedResponse(requestedPackage, cacheDir); found {
 		log.Printf("%s%s is already cached", providerRemoteAddress, requestedPackage)
 		w.Write(data)
 		return
@@ -53,7 +52,7 @@ func (repo *Repository) Home(w http.ResponseWriter, r *http.Request) {
 	defer resp.Body.Close()
 
 	data, _ := io.ReadAll(resp.Body)
-	err = helpers.CacheResponse(requestedPackage, repo.cacheDir, data)
+	err = helpers.CacheResponse(requestedPackage, cacheDir, data)
 	if err != nil {
 		log.Println(err.Error())
 	}
