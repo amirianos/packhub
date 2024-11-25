@@ -48,7 +48,8 @@ func cacheCleanup(cacheValidTime int, cacheDir string) {
 	now := time.Now()
 	files, err := os.ReadDir(cacheDir)
 	if err != nil {
-		log.Fatal(err)
+		// log.Fatal(err)
+		log.Println(err.Error())
 	}
 	for _, file := range files {
 		filePath := cacheDir + "/" + file.Name()
