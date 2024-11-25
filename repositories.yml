@@ -1,0 +1,10 @@
+flutter:
+  address: "https://pub.dev"
+  cacheDir: "/opt/cache/flutter"
+  cacheExpirationCheck: "00h30m00s" # following this format -> 00h00m00s
+  cacheValidTime: 24 # in hour 
+apt:
+  address: "https://pub2.dev"
+  cacheDir: "/opt/cache/apt"
+  cacheExpirationCheck: "00h30m00s"
+  cacheValidTime: 24
